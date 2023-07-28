@@ -124,36 +124,36 @@ const transUpperName = (name) => {
 };
 
 const replaceKey = (key) => {
-    const valueKey = key.replace("#/components/schemas/", "");
-    return valueKey;
-}
+  const valueKey = key.replace("#/components/schemas/", "");
+  return valueKey;
+};
 
 const deletePoint = (name) => {
-    if (name) {
-        return name.split(".").join("");
-    }
-}
+  if (name) {
+    return name.split(".").join("");
+  }
+};
 
 /// 生成dto类型接口名称
 const genDtoInterfaceName = (key) => {
-    // 替换一些特殊的符号
-    const keyArr = deletePoint(replaceKey(key)).split("`1");
-    let dtoInterfaceName = keyArr[0].replace("+", "_");
-    if (keyArr[1]) {
-        const keyJson = keyArr[1].replace("[[", "").replace("]]", "").split(",")[0];
-        dtoInterfaceName += `_${keyJson}`;
-    }
-    return dtoInterfaceName;
-}
+  // 替换一些特殊的符号
+  const keyArr = deletePoint(replaceKey(key)).split("`1");
+  let dtoInterfaceName = keyArr[0].replace("+", "_");
+  if (keyArr[1]) {
+    const keyJson = keyArr[1].replace("[[", "").replace("]]", "").split(",")[0];
+    dtoInterfaceName += `_${keyJson}`;
+  }
+  return dtoInterfaceName;
+};
 
 const returnFieldType = (key) => {
-    if (key) {
-        // 如果是enum实体，则返回number类型
-        let isEnumDto = !!dtoSchemas[replaceKey(key)]?.["enum"];
-        let fieldType = isEnumDto ? "number" : `${genDtoInterfaceName(key)}`;
-        return fieldType;
-    }
-}
+  if (key) {
+    // 如果是enum实体，则返回number类型
+    let isEnumDto = !!dtoSchemas[replaceKey(key)]?.["enum"];
+    let fieldType = isEnumDto ? "number" : `${genDtoInterfaceName(key)}`;
+    return fieldType;
+  }
+};
 
 /// 匹配字段类型
 const matchFieldType = (item) => {
@@ -215,10 +215,10 @@ const genDtoSchemasKey = (apiItem, type = "res") => {
 
 // 保存使用到的dto实体
 const saveDtoSchemas = (dtoKey) => {
-    if (dtoKey && !dtoSchemasMap.has(dtoKey)) {
-        dtoSchemasMap.set(dtoKey, dtoSchemas[replaceKey(dtoKey)]);
-    }
-}
+  if (dtoKey && !dtoSchemasMap.has(dtoKey)) {
+    dtoSchemasMap.set(dtoKey, dtoSchemas[replaceKey(dtoKey)]);
+  }
+};
 
 // 生成api方法和请求实体
 const genApiAndRequestDto = (apiInfo) => {
@@ -258,27 +258,46 @@ const genApiAndRequestDto = (apiInfo) => {
 
     saveDtoSchemas(reqDtoKey);
     saveDtoSchemas(resDtoKey);
-    
+
     // 替换URl上的参数
     if (fullPath.indexOf("{") !== -1) {
-        fullPath = fullPath.replace(/{/g, "${params.");
+      fullPath = fullPath.replace(/{/g, "${params.");
     }
 
-    tplCode +=  `${methodParams.summary ? `/**
+    tplCode += `${
+      methodParams.summary
+        ? `/**
       * @description ${methodParams.summary}
-    */` : ""}
+    */`
+        : ""
+    }
         ${interfaceParamsTpl(parameters, interfaceName)}
         export async function ${requestName}${transUpperName(method)}`;
-    
+
     if (method.toLowerCase() === "get") {
-        tplCode += `(${interfaceParams}): Promise<${apiResType}> {
-            const path: string = ${(query.length > 0) && interfaceParams ? `genQueryPath(params, ${JSON.stringify(query)}, \`${fullPath}\`)` : `\`${fullPath}\``};
+      tplCode += `(${interfaceParams}): Promise<${apiResType}> {
+            const path: string = ${
+              query.length > 0 && interfaceParams
+                ? `genQueryPath(params, ${JSON.stringify(
+                    query
+                  )}, \`${fullPath}\`)`
+                : `\`${fullPath}\``
+            };
             return http.${method}(path);
         }\n`;
-    } else { // 除get以外的请求
-        tplCode += `(${interfaceParams ? `${interfaceParams},`: ""} ${interfaceBody}): Promise<${apiResType}> {
-            const path: string = ${!!query.length ? `genQueryPath(params, ${JSON.stringify(query)}, \`${fullPath}\`)` : `\`${fullPath}\``};
-            return http.${method}(path, ${interfaceBody ? ", data": ""});
+    } else {
+      // 除get以外的请求
+      tplCode += `(${
+        interfaceParams ? `${interfaceParams},` : ""
+      } ${interfaceBody}): Promise<${apiResType}> {
+            const path: string = ${
+              !!query.length
+                ? `genQueryPath(params, ${JSON.stringify(
+                    query
+                  )}, \`${fullPath}\`)`
+                : `\`${fullPath}\``
+            };
+            return http.${method}(path, ${interfaceBody ? ", data" : ""});
         }\n`;
     }
   }
@@ -287,34 +306,38 @@ const genApiAndRequestDto = (apiInfo) => {
 
 // 生成dto类型声明
 const genDtoSchemas = () => {
-    let tplField, tplFieldType, tplCode, dtoKey = "";
-    dtoSchemasMap.forEach((dtoSchemaValue, key) => {
-        const { type, properties = {} } = dtoSchemaValue;
-        if (type === "object") {
-            for (let k in properties) {
-                const { $ref, nullable } = properties[k];
-                if ($ref) {
-                    tplFieldType = returnFieldType($ref);
-                    dtoKey = $ref;
-                } else {
-                    const matchFieldVal = matchFieldType(properties[k]);
-                    tplFieldType = matchFieldVal["fieldType"];
-                    dtoKey = matchFieldVal["dtoKey"];
-                }
-                saveDtoSchemas(dtoKey);
-                tplField += `${k}${nullable ? "?" : ""} : ${tplFieldType}`;
-            }
-            tplCode += `export interface ${genDtoInterfaceName(key)} {
+  let tplField,
+    tplFieldType,
+    tplCode,
+    dtoKey = "";
+  dtoSchemasMap.forEach((dtoSchemaValue, key) => {
+    const { type, properties = {} } = dtoSchemaValue;
+    if (type === "object") {
+      for (let k in properties) {
+        const { $ref, nullable } = properties[k];
+        if ($ref) {
+          tplFieldType = returnFieldType($ref);
+          dtoKey = $ref;
+        } else {
+          const matchFieldVal = matchFieldType(properties[k]);
+          tplFieldType = matchFieldVal["fieldType"];
+          dtoKey = matchFieldVal["dtoKey"];
+        }
+        saveDtoSchemas(dtoKey);
+        tplField += `${k}${nullable ? "?" : ""} : ${tplFieldType}`;
+      }
+      tplCode += `export interface ${genDtoInterfaceName(key)} {
                 ${tplField}
             }\n\n`;
-        }
-        tplField = ``; // 每次循环结束，清空字段模板
-    });
-    return tplCode;
-}
+    }
+    tplField = ``; // 每次循环结束，清空字段模板
+  });
+  return tplCode;
+};
 
 const writeFileAPi = (apiData, tags) => {
-  let tplIndex = `import { genQueryPath } from './utils'; \n import { http } from @/utils/request`;
+  let tplIndex = `import { genQueryPath } from './utils'; 
+  \n import { http } from @/utils/request`;
   let tplDtoSchemas = `/**dto类型声明**/`;
   const apiDataLen = apiData.length;
   for (let i = 0; i < apiDataLen; i++) {
@@ -323,12 +346,12 @@ const writeFileAPi = (apiData, tags) => {
     tplIndex = `${tplIndex}\n${genApiAndRequestDto(pathItem)}\n`;
   }
   // 生成Dto类型声明
-  tplDtoSchemas = `${tplDtoSchemas}\n${genDtoSchemas}\n`;
+  tplDtoSchemas = `${tplDtoSchemas}\n${genDtoSchemas()}\n`;
 
   tplIndex = tplIndex + tplDtoSchemas;
   // 美化生成的代码
   tplIndex = beautify(tplIndex, { indent_size: 2, max_preserve_newlines: 2 });
-  
+
   // 输入文件
   fs.writeFileSync(`${API_PATH}/${curModuleFileName}.tsx`, tplIndex);
 };

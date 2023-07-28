@@ -1,5 +1,5 @@
 {
-  "name": "generateapi",
+  "name": "generate-api",
   "version": "1.0.0",
   "description": "API自动生成器",
   "main": "index.js",
